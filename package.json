@@ -1,0 +1,28 @@
+{
+  "name": "nutrition-app",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "web": "yarn workspace web-app start",
+    "mobile": "yarn workspace mobile-app start",
+    "build:web": "yarn workspace web-app build",
+    "build:shared": "yarn workspace @nutrition-app/shared build",
+    "test": "yarn workspaces run test",
+    "lint": "yarn workspaces run lint"
+  },
+  "devDependencies": {
+    "lerna": "^7.3.0",
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@types/uuid": "^10.0.0",
+    "uuid": "^11.1.0"
+  }
+}

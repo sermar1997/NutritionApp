@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Nutrition App</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    
+    body {
+      background-color: #f5f7f9;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      text-align: center;
+    }
+    
+    .container {
+      max-width: 600px;
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+    
+    .icon {
+      font-size: 72px;
+      margin-bottom: 1.5rem;
+    }
+    
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #2c3e50;
+    }
+    
+    p {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+      color: #5d6778;
+    }
+    
+    .btn {
+      background: #3f51b5;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: 500;
+    }
+    
+    .btn:hover {
+      background: #303f9f;
+    }
+    
+    .subtext {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      color: #7f8c9d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">🔌</div>
+    <h1>You're Offline</h1>
+    <p>
+      It looks like you've lost your internet connection. Not to worry - Nutrition App can still work offline! You can continue to use your saved recipes and inventory.
+    </p>
+    <p>
+      Some features might be limited until you're back online, but we've made sure the most important parts of the app still work.
+    </p>
+    <a href="/" class="btn">Try Again</a>
+    <p class="subtext">
+      Your changes will be synchronized automatically when you reconnect.
+    </p>
+  </div>
+</body>
+</html>
