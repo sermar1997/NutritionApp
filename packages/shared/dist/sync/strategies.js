@@ -7,6 +7,7 @@ import { SyncEntity, SyncOperation, SyncStatus, SyncStrategy } from './types';
  */
 export class BaseSyncStrategy {
     constructor() {
+        this.config = {};
         this.listeners = [];
         this.stats = {
             entitiesSynced: 0,
@@ -160,7 +161,7 @@ export class PeriodicSyncStrategy extends BaseSyncStrategy {
             this.stats.syncErrors += 1;
             // Notify error
             this.notifyListeners(this.createEvent(SyncEntity.USER, // Generic error
-            SyncOperation.UPDATE, 'batch', { error }, SyncStatus.ERROR, error.message));
+            SyncOperation.UPDATE, 'batch', { error }, SyncStatus.ERROR, error instanceof Error ? error.message : String(error)));
         }
         finally {
             this.stats.isCurrentlySyncing = false;
@@ -248,7 +249,7 @@ export class ConnectionBasedSyncStrategy extends BaseSyncStrategy {
             this.stats.syncErrors += 1;
             // Notify error
             this.notifyListeners(this.createEvent(SyncEntity.USER, // Generic error
-            SyncOperation.UPDATE, 'batch', { error }, SyncStatus.ERROR, error.message));
+            SyncOperation.UPDATE, 'batch', { error }, SyncStatus.ERROR, error instanceof Error ? error.message : String(error)));
         }
         finally {
             this.stats.isCurrentlySyncing = false;
@@ -259,10 +260,9 @@ export class ConnectionBasedSyncStrategy extends BaseSyncStrategy {
 /**
  * Factory function to create the appropriate sync strategy
  * @param strategy Strategy type
- * @param config Sync configuration
  * @returns Sync provider instance
  */
-export function createSyncStrategy(strategy, config) {
+export function createSyncStrategy(strategy) {
     switch (strategy) {
         case SyncStrategy.REALTIME:
             return new RealtimeSyncStrategy();

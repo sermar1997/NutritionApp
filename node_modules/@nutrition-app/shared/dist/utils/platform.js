@@ -9,6 +9,7 @@ export var Platform;
     Platform["WEB"] = "web";
     Platform["IOS"] = "ios";
     Platform["ANDROID"] = "android";
+    Platform["REACT_NATIVE"] = "react-native";
     Platform["UNKNOWN"] = "unknown";
 })(Platform || (Platform = {}));
 /**
@@ -22,10 +23,18 @@ export function getPlatform() {
     // React Native specific
     if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
         // This would be more nuanced in a real implementation
-        return Platform.ANDROID; // Default to Android for this example
+        return Platform.REACT_NATIVE;
     }
     // Web browser
     return Platform.WEB;
+}
+/**
+ * Check if the current platform matches the specified platform
+ * @param platform Platform to check against
+ * @returns True if the current platform matches
+ */
+export function isPlatform(platform) {
+    return getPlatform() === platform;
 }
 /**
  * Check if running on the web platform

@@ -103,12 +103,8 @@ export function getPaymentStatusDescription(status) {
  * @returns True if transaction can be refunded
  */
 export function canBeRefunded(transaction) {
-    // Only completed transactions can be refunded
+    // We can only refund successful transactions
     if (transaction.status !== PaymentStatus.COMPLETED) {
-        return false;
-    }
-    // Check if it's already refunded
-    if (transaction.status === PaymentStatus.REFUNDED) {
         return false;
     }
     // Some transaction types cannot be refunded

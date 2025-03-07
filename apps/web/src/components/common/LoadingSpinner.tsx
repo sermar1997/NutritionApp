@@ -4,6 +4,7 @@ import styled, { keyframes } from 'styled-components';
 // Types
 interface LoadingSpinnerProps {
   size?: 'small' | 'medium' | 'large' | 'xlarge';
+  ['data-testid']?: string;
 }
 
 // Animation
@@ -28,11 +29,11 @@ const SpinnerElement = styled.div<{ size?: 'small' | 'medium' | 'large' | 'xlarg
       case 'small':
         return '24px';
       case 'large':
+        return '48px';
+      case 'xlarge':      
         return '64px';
-      case 'xlarge':
-        return '96px';
       default:
-        return '50px';
+        return '32px';
     }
   }};
   height: ${({ size }) => {
@@ -40,35 +41,23 @@ const SpinnerElement = styled.div<{ size?: 'small' | 'medium' | 'large' | 'xlarg
       case 'small':
         return '24px';
       case 'large':
+        return '48px';
+      case 'xlarge':      
         return '64px';
-      case 'xlarge':
-        return '96px';
       default:
-        return '50px';
+        return '32px';
     }
   }};
   border: ${({ size }) => {
     switch (size) {
       case 'small':
-        return '3px';
+        return '2px';
       case 'large':
+        return '4px';
+      case 'xlarge':      
         return '5px';
-      case 'xlarge':
-        return '7px';
       default:
-        return '5px';
-    }
-  }} solid ${({ theme }) => theme.colors.primaryLight};
-  border-top: ${({ size }) => {
-    switch (size) {
-      case 'small':
         return '3px';
-      case 'large':
-        return '5px';
-      case 'xlarge':
-        return '7px';
-      default:
-        return '5px';
     }
   }} solid ${({ theme }) => theme.colors.primary};
   border-radius: 50%;
@@ -78,12 +67,15 @@ const SpinnerElement = styled.div<{ size?: 'small' | 'medium' | 'large' | 'xlarg
 /**
  * Loading spinner component
  */
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'medium' }) => {
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
+  size = 'medium',
+  'data-testid': dataTestId
+}) => {
   const inline = size === 'small';
   
   return (
     <SpinnerContainer inline={inline}>
-      <SpinnerElement size={size} />
+      <SpinnerElement size={size} data-testid={dataTestId} />
     </SpinnerContainer>
   );
 };

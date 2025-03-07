@@ -483,7 +483,7 @@ const Profile: React.FC = () => {
               
               <ButtonContainer>
                 <Button type="submit" variant="primary">
-                  {t('profile.updatePassword')}
+                  {t('profile.confirmPassword')}
                 </Button>
               </ButtonContainer>
             </Form>

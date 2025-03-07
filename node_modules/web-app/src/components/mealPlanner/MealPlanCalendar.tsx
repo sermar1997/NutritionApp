@@ -125,14 +125,30 @@ const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
   onPreviousWeek,
   onNextWeek
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  
+  // Determine if we should start the week on Monday (Spanish) or Sunday (English)
+  const startWeekOnMonday = i18n.language === 'es';
   
   // Generate an array of dates for the current week
   const generateWeekDays = (startDate: Date): { date: Date, key: string }[] => {
     const days = [];
+    const adjustedStartDate = new Date(startDate);
+    
+    // If we need to start on Monday and the startDate is a Sunday,
+    // adjust to start from the next day (Monday)
+    if (startWeekOnMonday && adjustedStartDate.getDay() === 0) {
+      adjustedStartDate.setDate(adjustedStartDate.getDate() + 1);
+    }
+    // If we need to start on Sunday and the startDate is not a Sunday,
+    // adjust to start from the previous Sunday
+    else if (!startWeekOnMonday && adjustedStartDate.getDay() !== 0) {
+      adjustedStartDate.setDate(adjustedStartDate.getDate() - adjustedStartDate.getDay());
+    }
+    
     for (let i = 0; i < 7; i++) {
-      const currentDate = new Date(startDate);
-      currentDate.setDate(startDate.getDate() + i);
+      const currentDate = new Date(adjustedStartDate);
+      currentDate.setDate(adjustedStartDate.getDate() + i);
       days.push({
         date: currentDate,
         key: currentDate.toISOString().split('T')[0]
@@ -145,15 +161,34 @@ const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
   
   // Format date range for display
   const formatWeekRange = (start: Date): string => {
-    const endDate = new Date(start);
-    endDate.setDate(start.getDate() + 6);
-    return `${start.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+    const weekStart = weekDays[0].date;
+    const weekEnd = weekDays[6].date;
+    return `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
   };
   
+  // Get day names in the correct order based on language
+  const getDayNames = (): string[] => {
+    const locale = i18n.language || 'en';
+    const options = { weekday: 'short' as const };
+    
+    // Create a date for a week and get the day names in the correct order
+    const baseDate = new Date(2023, 0, 1); // Just a random Sunday (2023-01-01 was a Sunday)
+    const dayNames: string[] = [];
+    
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(baseDate);
+      // If starting on Monday, we add 1 to each day index
+      const dayOffset = startWeekOnMonday ? i + 1 : i;
+      // Make sure we wrap around from 7 (Sunday when starting on Monday) to 0 (Sunday)
+      day.setDate(baseDate.getDate() + (dayOffset % 7));
+      dayNames.push(day.toLocaleDateString(locale, options));
+    }
+    
+    return dayNames;
+  };
+
   // Day name headers (Sun, Mon, etc.)
-  const dayNames = weekDays.map(day => 
-    day.date.toLocaleDateString(undefined, { weekday: 'short' })
-  );
+  const dayNames = getDayNames();
 
   return (
     <div>

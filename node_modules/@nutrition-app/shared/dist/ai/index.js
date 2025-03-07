@@ -1,6 +1,8 @@
 /**
- * AI module index
+ * AI module exports
+ *
+ * This file re-exports all AI-related functionality for web and mobile clients
  */
-export * from './models';
-export * from './types';
-export * from './utils';
+import { createIngredientDetectionService } from '../infrastructure/services/IngredientDetectionService';
+// Re-export the factory function
+export { createIngredientDetectionService };

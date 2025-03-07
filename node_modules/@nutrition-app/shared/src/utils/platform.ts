@@ -9,6 +9,7 @@ export enum Platform {
   WEB = 'web',
   IOS = 'ios',
   ANDROID = 'android',
+  REACT_NATIVE = 'react-native',
   UNKNOWN = 'unknown',
 }
 
@@ -24,11 +25,20 @@ export function getPlatform(): Platform {
   // React Native specific
   if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
     // This would be more nuanced in a real implementation
-    return Platform.ANDROID; // Default to Android for this example
+    return Platform.REACT_NATIVE;
   }
   
   // Web browser
   return Platform.WEB;
+}
+
+/**
+ * Check if the current platform matches the specified platform
+ * @param platform Platform to check against
+ * @returns True if the current platform matches
+ */
+export function isPlatform(platform: Platform): boolean {
+  return getPlatform() === platform;
 }
 
 /**

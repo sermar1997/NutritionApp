@@ -1,0 +1,4 @@
+/**
+ * AI infrastructure types
+ */
+export {};

@@ -8,6 +8,7 @@ export declare enum Platform {
     WEB = "web",
     IOS = "ios",
     ANDROID = "android",
+    REACT_NATIVE = "react-native",
     UNKNOWN = "unknown"
 }
 /**
@@ -15,6 +16,12 @@ export declare enum Platform {
  * @returns The current platform
  */
 export declare function getPlatform(): Platform;
+/**
+ * Check if the current platform matches the specified platform
+ * @param platform Platform to check against
+ * @returns True if the current platform matches
+ */
+export declare function isPlatform(platform: Platform): boolean;
 /**
  * Check if running on the web platform
  * @returns True if running on web

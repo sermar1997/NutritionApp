@@ -10,8 +10,18 @@ import { useTranslation } from 'react-i18next';
 import Button from '../common/Button';
 import Card from '../common/Card';
 import LoadingSpinner from '../common/LoadingSpinner';
-import { createIngredientDetectionModel } from '@nutrition-app/shared/src/ai';
-import { ImageAnalysisResult, DetectedIngredient } from '@nutrition-app/shared/src/ai';
+import { 
+  IIngredientDetectionService 
+} from '@nutrition-app/shared/src/core/domain/services/IIngredientDetectionService';
+import { 
+  createIngredientDetectionService 
+} from '@nutrition-app/shared/src/infrastructure/services/IngredientDetectionService';
+import {
+  DetectedIngredient
+} from '@nutrition-app/shared/src/core/models/ingredient';
+import {
+  ImageAnalysisResult
+} from '@nutrition-app/shared/src/core/models/ai';
 
 // Styled Components
 const CaptureContainer = styled(Card)`
@@ -159,92 +169,116 @@ const IngredientActions = styled.div`
   gap: ${({ theme }) => theme.spacing.sm};
 `;
 
-export interface ImageCaptureProps {
-  /**
-   * Callback when ingredients are detected and user confirms them
-   */
-  onIngredientsDetected: (ingredients: DetectedIngredient[]) => void;
+interface Props {
+  onIngredientsIdentified: (ingredients: DetectedIngredient[]) => void;
+  onClose: () => void;
 }
 
 /**
- * Component for capturing and analyzing images to detect ingredients
+ * Image Capture Component
  */
-const ImageCapture: React.FC<ImageCaptureProps> = ({ onIngredientsDetected }) => {
+const ImageCapture: React.FC<Props> = ({ onIngredientsIdentified, onClose }) => {
   const { t } = useTranslation();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // State
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraStarting, setCameraStarting] = useState(false);
   const [imageSource, setImageSource] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResults, setAnalysisResults] = useState<ImageAnalysisResult | null>(null);
-  const [cameraPermissionDenied, setCameraPermissionDenied] = useState(false);
   const [selectedIngredients, setSelectedIngredients] = useState<DetectedIngredient[]>([]);
+  const [analysisResults, setAnalysisResults] = useState<ImageAnalysisResult | null>(null);
   
-  // Set up and clean up camera stream
+  // Initialize detection service
+  const [detectionService] = useState<IIngredientDetectionService>(() => createIngredientDetectionService());
+  
+  // Preload model in background
   useEffect(() => {
-    let mediaStream: MediaStream | null = null;
-    
-    const setupCamera = async () => {
+    const preloadModel = async () => {
       try {
-        if (cameraActive && videoRef.current) {
-          mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' },
-            audio: false
-          });
-          
-          if (videoRef.current) {
-            videoRef.current.srcObject = mediaStream;
+        await detectionService.loadModel();
+        console.log('Ingredient detection model preloaded successfully');
+      } catch (error) {
+        console.error('Failed to preload ingredient detection model:', error);
+      }
+    };
+    
+    preloadModel();
+  }, [detectionService]);
+  
+  // Start camera
+  const startCamera = async () => {
+    if (videoRef.current && !cameraActive) {
+      setCameraStarting(true);
+      
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment', // Prefer back camera on mobile
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
           }
-          
-          setCameraPermissionDenied(false);
-        }
+        });
+        
+        // Connect stream to video element
+        videoRef.current.srcObject = stream;
+        setCameraActive(true);
       } catch (error) {
         console.error('Error accessing camera:', error);
-        setCameraPermissionDenied(true);
-        setCameraActive(false);
+      } finally {
+        setCameraStarting(false);
       }
-    };
-    
-    setupCamera();
-    
-    // Clean up function
-    return () => {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [cameraActive]);
+    }
+  };
   
-  // Handle file selection
-  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-      const imageUrl = URL.createObjectURL(file);
+  // Stop camera
+  const stopCamera = useCallback(() => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      // Stop all tracks in the stream
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
       
-      setImageSource(imageUrl);
+      // Clear source
+      videoRef.current.srcObject = null;
       setCameraActive(false);
-      setAnalysisResults(null);
-      setSelectedIngredients([]);
     }
   }, []);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Stop camera stream on unmount
+      stopCamera();
+    };
+  }, [stopCamera]);
+  
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setImageSource(result);
+        
+        // Stop camera if running
+        if (cameraActive) {
+          stopCamera();
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   
   // Open file selector
   const handleOpenFileSelector = useCallback(() => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
-  }, []);
-  
-  // Start camera
-  const handleStartCamera = useCallback(() => {
-    setImageSource(null);
-    setCameraActive(true);
-    setAnalysisResults(null);
-    setSelectedIngredients([]);
   }, []);
   
   // Capture image from camera
@@ -274,48 +308,47 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onIngredientsDetected }) =>
     }
   }, []);
   
-  // Analyze the image to detect ingredients
-  const handleAnalyzeImage = useCallback(async () => {
+  // Analyze the image for ingredients
+  const analyzeImage = useCallback(async () => {
     if (!imageSource) return;
     
-    setIsAnalyzing(true);
-    
     try {
-      // Create and use the ingredient detection model
-      const model = createIngredientDetectionModel();
-      await model.load();
+      setIsAnalyzing(true);
       
-      // Analyze the image - use either an HTML image element or data URL
-      let input: HTMLImageElement | string;
+      // Create an image element for the AI model
+      const image = new Image();
+      image.crossOrigin = 'anonymous';
+      image.src = imageSource;
       
-      if (imageRef.current && imageRef.current.complete) {
-        input = imageRef.current;
-      } else {
-        input = imageSource;
-      }
+      // Wait for image to load
+      await new Promise<void>((resolve) => {
+        image.onload = () => resolve();
+      });
       
-      // Process the image
-      const results = await model.process(input);
+      // Analyze the image
+      const results = await detectionService.detectIngredientsInImage(image);
+      
+      // Update state with analysis results
       setAnalysisResults(results);
-      setSelectedIngredients(results.detectedIngredients);
       
-      // Unload the model to free resources
-      await model.unload();
+      // Pre-select all detected ingredients
+      setSelectedIngredients(results.ingredients);
+      
     } catch (error) {
       console.error('Error analyzing image:', error);
-      alert(t('inventory.scanError'));
+      // Handle error
     } finally {
       setIsAnalyzing(false);
     }
-  }, [imageSource, t]);
+  }, [imageSource, detectionService]);
   
   // Toggle ingredient selection
   const toggleIngredientSelection = (ingredient: DetectedIngredient) => {
     setSelectedIngredients(prev => {
-      const isSelected = prev.some(i => i.ingredient.id === ingredient.ingredient.id);
+      const isSelected = prev.some(i => i.name === ingredient.name);
       
       if (isSelected) {
-        return prev.filter(i => i.ingredient.id !== ingredient.ingredient.id);
+        return prev.filter(i => i.name !== ingredient.name);
       } else {
         return [...prev, ingredient];
       }
@@ -325,13 +358,28 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onIngredientsDetected }) =>
   // Confirm selected ingredients
   const handleConfirmIngredients = () => {
     if (selectedIngredients.length > 0) {
-      onIngredientsDetected(selectedIngredients);
+      onIngredientsIdentified(selectedIngredients);
       
       // Reset the component
       setImageSource(null);
       setAnalysisResults(null);
       setSelectedIngredients([]);
+      
+      // Close modal
+      onClose();
     }
+  };
+  
+  // Cancel and close
+  const handleCancel = () => {
+    // Reset state
+    setImageSource(null);
+    setAnalysisResults(null);
+    setSelectedIngredients([]);
+    stopCamera();
+    
+    // Close modal
+    onClose();
   };
   
   // Reset everything
@@ -363,7 +411,7 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onIngredientsDetected }) =>
         ) : imageSource ? (
           <>
             <img 
-              ref={imageRef}
+              ref={imgRef}
               src={imageSource} 
               alt={t('inventory.capturedImage')} 
             />
@@ -371,12 +419,12 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onIngredientsDetected }) =>
             {/* Detection overlay with bounding boxes */}
             {analysisResults && (
               <DetectionOverlay>
-                {analysisResults.detectedIngredients.map((item, index) => (
+                {analysisResults.detections.map((item, index) => (
                   item.boundingBox && (
                     <BoundingBox 
                       key={`box-${index}`}
                       box={item.boundingBox}
-                      data-label={`${item.ingredient.name} (${Math.round(item.confidence * 100)}%)`}
+                      data-label={`${item.class} (${Math.round(item.confidence * 100)}%)`}
                     />
                   )
                 ))}
@@ -403,8 +451,8 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onIngredientsDetected }) =>
           <>
             <Button 
               variant="primary" 
-              onClick={handleStartCamera}
-              disabled={cameraPermissionDenied}
+              onClick={startCamera}
+              disabled={cameraStarting}
               rightIcon="📷"
             >
               {t('inventory.openCamera')}
@@ -421,21 +469,30 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onIngredientsDetected }) =>
         )}
         
         {cameraActive && (
-          <Button 
-            variant="primary" 
-            onClick={handleCaptureImage}
-            disabled={isCapturing}
-            rightIcon="📸"
-          >
-            {isCapturing ? t('inventory.capturing') : t('inventory.capturePhoto')}
-          </Button>
+          <>
+            <Button 
+              variant="primary" 
+              onClick={handleCaptureImage}
+              disabled={isCapturing}
+              rightIcon="📸"
+            >
+              {isCapturing ? t('inventory.capturing') : t('inventory.capturePhoto')}
+            </Button>
+            
+            <Button 
+              variant="secondary" 
+              onClick={handleCancel}
+            >
+              {t('inventory.cancelCapture')}
+            </Button>
+          </>
         )}
         
         {imageSource && !analysisResults && (
           <>
             <Button 
               variant="primary" 
-              onClick={handleAnalyzeImage}
+              onClick={analyzeImage}
               disabled={isAnalyzing}
               rightIcon="🔍"
             >
@@ -451,7 +508,7 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onIngredientsDetected }) =>
             
             <Button 
               variant="secondary" 
-              onClick={handleReset}
+              onClick={handleCancel}
             >
               {t('common.cancel')}
             </Button>
@@ -470,7 +527,7 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onIngredientsDetected }) =>
             
             <Button 
               variant="secondary" 
-              onClick={handleReset}
+              onClick={handleCancel}
             >
               {t('inventory.startOver')}
             </Button>
@@ -481,20 +538,20 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onIngredientsDetected }) =>
       {analysisResults && (
         <ResultsContainer>
           <ResultsTitle>
-            {t('inventory.detectedIngredients')} ({analysisResults.detectedIngredients.length})
+            {t('inventory.detectedIngredients')} ({analysisResults.ingredients.length})
           </ResultsTitle>
           
-          {analysisResults.detectedIngredients.length > 0 ? (
+          {analysisResults.ingredients.length > 0 ? (
             <IngredientList>
-              {analysisResults.detectedIngredients.map((item, index) => {
+              {analysisResults.ingredients.map((item, index) => {
                 const isSelected = selectedIngredients.some(i => 
-                  i.ingredient.id === item.ingredient.id
+                  i.name === item.name
                 );
                 
                 return (
                   <IngredientItem key={`ingredient-${index}`}>
                     <IngredientInfo>
-                      <IngredientName>{item.ingredient.name}</IngredientName>
+                      <IngredientName>{item.name}</IngredientName>
                       <IngredientConfidence>
                         {Math.round(item.confidence * 100)}% {t('inventory.confidence')}
                       </IngredientConfidence>

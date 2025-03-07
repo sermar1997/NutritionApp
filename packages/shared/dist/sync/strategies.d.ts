@@ -123,7 +123,6 @@ export declare class ConnectionBasedSyncStrategy extends BaseSyncStrategy {
 /**
  * Factory function to create the appropriate sync strategy
  * @param strategy Strategy type
- * @param config Sync configuration
  * @returns Sync provider instance
  */
-export declare function createSyncStrategy(strategy: SyncStrategy, config: SyncConfig): SyncProvider;
+export declare function createSyncStrategy(strategy: SyncStrategy): SyncProvider;

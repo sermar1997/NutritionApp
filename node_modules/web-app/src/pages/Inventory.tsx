@@ -8,7 +8,12 @@ import Card from '../components/common/Card';
 import Modal from '../components/common/Modal';
 import AddIngredientForm from '../components/inventory/AddIngredientForm';
 import ImageCapture from '../components/inventory/ImageCapture';
-import { Ingredient, useInventory } from '../context/InventoryContext';
+import { useInventory } from '../context/InventoryContext';
+import { 
+  Ingredient, 
+  IngredientCategory,
+  DetectedIngredient 
+} from '@nutrition-app/shared/src/core/models/ingredient';
 
 // Styled Components
 const PageContainer = styled.div`
@@ -166,7 +171,7 @@ const Inventory: React.FC = () => {
   
   const [filteredIngredients, setFilteredIngredients] = useState<Ingredient[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<IngredientCategory[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [expiringIngredients, setExpiringIngredients] = useState<Ingredient[]>([]);
@@ -198,7 +203,7 @@ const Inventory: React.FC = () => {
   };
   
   // Handle category filter change
-  const handleCategoryChange = (category: string) => {
+  const handleCategoryChange = (category: IngredientCategory) => {
     setSelectedCategories(prev => {
       if (prev.includes(category)) {
         return prev.filter(c => c !== category);
@@ -218,19 +223,28 @@ const Inventory: React.FC = () => {
     setIsScanModalOpen(true);
   };
 
-  // Handle detected ingredients from image capture
-  const handleIngredientsDetected = (detectedIngredients: any[]) => {
-    // Convert detected ingredients to inventory ingredients
-    const newIngredients = detectedIngredients.map(detected => ({
-      name: detected.name,
-      quantity: 1,
-      unit: 'pieces',
-      category: detected.category || 'Other',
-      nutritionalInfo: detected.nutritionPer100g
+  // Handle ingredients detected from image capture
+  const handleIngredientsIdentified = (ingredients: DetectedIngredient[]) => {
+    // Convert detected ingredients to DTO format
+    const newIngredients = ingredients.map(ingredient => ({
+      name: ingredient.name,
+      category: ingredient.category,
+      quantity: ingredient.estimatedQuantity?.value || 1,
+      unit: ingredient.estimatedQuantity?.unit,
+      // Set default values for other fields
+      expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      nutritionalInfo: {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0
+      }
     }));
     
-    // Add ingredients
+    // Add ingredients to inventory
     addIngredients(newIngredients);
+    
+    // Close the modal
     setIsScanModalOpen(false);
   };
   
@@ -369,11 +383,12 @@ const Inventory: React.FC = () => {
       <Modal 
         isOpen={isScanModalOpen} 
         onClose={() => setIsScanModalOpen(false)}
-        title={t('inventory.scanIngredient')}
+        title={t('inventory.scanIngredients')}
         size="large"
       >
         <ImageCapture 
-          onIngredientsDetected={handleIngredientsDetected}
+          onIngredientsIdentified={handleIngredientsIdentified}
+          onClose={() => setIsScanModalOpen(false)}
         />
       </Modal>
     </PageContainer>

@@ -120,10 +120,10 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
   
   return createPortal(
     <ModalOverlay onClick={handleOverlayClick}>
-      <ModalContainer ref={modalRef} size={size}>
+      <ModalContainer ref={modalRef} size={size} role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <ModalHeader>
-          <ModalTitle>{title}</ModalTitle>
-          <CloseButton onClick={onClose}>✕</CloseButton>
+          <ModalTitle id="modal-title">{title}</ModalTitle>
+          <CloseButton onClick={onClose} aria-label="close">✕</CloseButton>
         </ModalHeader>
         {children}
       </ModalContainer>
